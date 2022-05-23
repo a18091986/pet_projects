@@ -9,8 +9,10 @@ Web-сервис демонстрирующий работу основных а
 - градиентный бустинг
 - etc
 
-Основной инструмент - Dash  
-[Материалы для начального погружения в тему](https://colab.research.google.com/drive/1D9z82lYVAoBoCAcTLPGmv-I-WFgzCH2d?usp=sharing)  
+**Основной инструмент - Dash**  
+
+__[Материалы для начального погружения в тему](https://colab.research.google.com/drive/1D9z82lYVAoBoCAcTLPGmv-I-WFgzCH2d?usp=sharing)__
+
 В файле TODO.txt - ближайшие запланированные шаги  
 
 Requirements.txt - необходимые библиотеки для запуска приложения
