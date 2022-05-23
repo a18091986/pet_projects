@@ -15,6 +15,6 @@ Web-сервис демонстрирующий работу основных а
 
 Requirements.txt - необходимые библиотеки для запуска приложения
 
-![Image alt](https://github.com/a18091986/pet_projects/blob/main/ML%20algorithms%20web%20tutorial/pictures/preview.PNG))
+![Image alt](https://github.com/a18091986/pet_projects/blob/main/ML%20algorithms%20web%20tutorial/pictures/preview.PNG)
 
 
