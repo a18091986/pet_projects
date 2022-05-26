@@ -1,18 +1,21 @@
+from DataFrame_primary_preprocessing import df as initial_df  # предварительная обработка df, импорт подготовленного
+
 import pandas as pd
 import numpy as np
-
 from dash import Dash, Input, Output, State, callback, dash_table, html, dcc, ctx
 import dash_bootstrap_components as dbc
-from DataFrame_primary_preprocessing import df as initial_df, columns_names as columns_names
+
 import plotly.express as px
-
 from itertools import combinations
-
 from dash.exceptions import PreventUpdate
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.LUX], suppress_callback_exceptions=True)
 
+'''----------------------------------Layout------------------------------------------------------'''
+
+# структура страницы, взаимодействие с @callbacks осуществляется через id элементов
 app.layout = dbc.Container([
+    # dcc.Store используются в качестве невидимых контейнеров на странице для обмена информацией между @callbacks
     dcc.Store(id='prevent_error_if_show_nan_before_fill'),
     dcc.Store(id='df_after_fill_na_0'),
     dcc.Store(id='df_after_fill_na_1'),
@@ -20,12 +23,13 @@ app.layout = dbc.Container([
 
     html.H3('Демонстрация работы модели линейной регрессии', style={'textAlign': 'center', 'margin': '20px'}),
     html.H4('ИСХОДНЫЙ ДАТАСЕТ', style={'textAlign': 'center', 'margin': '20px', 'color': '#D35400'}),
-    html.H5('Выберите столбцы (используйьте иконку в шапке столбца для удаления)', style={'textAlign': 'center', 'margin': '20px', 'color': '#D35400'}),
+    html.H5('Выберите столбцы (используйьте иконку в шапке столбца для удаления)',
+            style={'textAlign': 'center', 'margin': '20px', 'color': '#D35400'}),
     html.Div([dash_table.DataTable(
         data=initial_df.to_dict('records'),
         columns=[{"name": i, "id": i, 'deletable': True, 'renamable': False} for i in initial_df.columns],
         id='main_table',
-        page_size=7,  # пагинация
+        page_size=7,
         style_table={'overflowX': 'scroll'},
         style_cell_conditional=[
             {
@@ -59,12 +63,24 @@ app.layout = dbc.Container([
                 class_name='d-grid gap-2', width={"size": 6, "offset": 0}),
     ], style={'margin': '5px'}),
     html.Hr(),
+    # блок с информацией о пропусках и двумя кнопками под ним
+    # генерируется @callback show_nans_after_main_table
     html.Div(id='nan_info_with_buttons'),
+
+    # блок с таблицей после заполнения пропусков
+    # генерируется @callback generate_df_after_fillna_click_btn
     html.Div(id='table_after_fill_na'),
+
+    # блок с выпадающим меню для построения попарной зависимости между признаками
+    # генерируется @callback generate_df_after_fillna_click_btn
     html.Div(id='graph_region_control', className="d-grid gap-2", style={'margin-bottom': '20px'}),
+
+    # блок с графиками попарных зависимостей между признаками
+    # генерируется @callback show_graph
     html.Div(id='graph_region'),
 ])
 
+'''--------------------------------------Callbacks------------------------------------------------------'''
 
 @callback(
     Output('main_table', 'data'),
@@ -74,6 +90,7 @@ app.layout = dbc.Container([
 def reset_changes_on_main_table(n):
     '''
     возвращает главную таблицу в исходный вид
+    срабатывает при нажатии на кнопку вернуть исходное состояние таблицы
     '''
     df_cur = initial_df.copy()
     return df_cur.to_dict('records'), \
@@ -90,10 +107,16 @@ def reset_changes_on_main_table(n):
 )
 def show_nans_after_main_table(n, data_from_dccStore, data_from_main_table):
     '''
-    отображает пропущенные значения исходной таблицы и кнопки заполнения пропусков
+    генерирует блок с пропущенными значениями исходной таблицы и кнопки заполнения пропусков под ним
+    срабатывает при нажатии кнопки "Применить изменения и показать данные по пропускам" или
+    при обновлении информации в невидимом контейнере 'df_after_fill_na_1'
+    выход: блок с данными по пропускам и невидимый контейнер 'prevent_error_if_show_nan_before_fill',
+    служащий для предотвращения ошибки, возникающей при нажатии кнопки "отобразить информацию по пропускам"
+    до заполнения пропусков кнопкой "заполнить пропуски в соответствии с выбранными методами"
+
     '''
     out_row_list = []
-    if ctx.triggered_id == 'submit_changes_to_main_table_btn':
+    if ctx.triggered_id == 'submit_changes_to_main_table_btn':#проверка id элемента, вызвавшего callback
         df_cur = pd.DataFrame(data_from_main_table)
     else:
         df_cur = pd.read_json(data_from_dccStore)
@@ -104,6 +127,8 @@ def show_nans_after_main_table(n, data_from_dccStore, data_from_main_table):
         dbc.Col(['Количество пропусков'], width=3, style={'textAlign': 'center'}),
         dbc.Col(['Метод заполнения пропусков в каждой колонке'], width=4, style={'textAlign': 'center'}),
     ], justify='center', style={'margin-top': '3px'}))
+
+    #блок с пропусками
     out_row_list.append(html.Hr())
     for column in df_cur.columns.to_list():
         out_row_list.append(dbc.Row([
@@ -152,7 +177,8 @@ def generate_df_after_fillna_click_btn(n, nan_info_with_buttons_div_structure,
                                        current_data_in_main_table):
     '''Выдает df c заполненными пропусками'''
     if n is None:
-        raise PreventUpdate
+        raise PreventUpdate#предотвращает запуск callback если кнопка заполнить пропуски ещё ни разу
+                            #не нажималась
     df_cur = pd.DataFrame(current_data_in_main_table)
     for item in nan_info_with_buttons_div_structure:
         try:
@@ -173,7 +199,7 @@ def generate_df_after_fillna_click_btn(n, nan_info_with_buttons_div_structure,
             data=df_cur.to_dict('records'),
             columns=[{"name": i, 'id': i} for i in df_cur.columns],
             id='table_after_fillna',
-            page_size=7,  # пагинация
+            page_size=7,
             style_table={'overflowX': 'scroll'},
             style_cell_conditional=[
                 {
@@ -222,7 +248,9 @@ def generate_df_after_fillna_click_btn(n, nan_info_with_buttons_div_structure,
 )
 def show_nans_after_main_table_after_fillna(n, data, data_):
     '''
-    отображает пропущенные значения исходной таблицы и кнопки заполнения пропусков
+    формирует данные в невидимый контейнер, применяемый для предотвращения ошибки,
+    возникающей при нажатии кнопки "отобразить информацию по пропускам"
+    до заполнения пропусков кнопкой "заполнить пропуски в соответствии с выбранными методами"
     '''
     if not data:
         return data_
@@ -241,11 +269,10 @@ def show_graph(data_x_y, data):
     '''
     x, y = data_x_y.split(' vs ')
     df_cur = pd.read_json(data)
-    fig = px.scatter(df_cur, x = x, y = y)
-
+    fig = px.scatter(df_cur, x=x, y=y)
 
     return [dcc.Graph(id='graph', figure=fig)]
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True, host='192.168.2.23', port=8050)
+    app.run_server(debug=True)
